@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terminal 2k26</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --green:#00ff41;
+  --green-dim:#00cc33;
+  --green-glow:#00ff4133;
+  --green-dark:#003311;
+  --amber:#ffb000;
+  --red:#ff3333;
+  --bg:#020d04;
+  --bg2:#040f06;
+  --surface:#071a0a;
+  --border:#0a3d12;
+  --border-bright:#00ff4155;
+  --text:#b0ffb8;
+  --text-dim:#3a7a42;
+  --mono:'Share Tech Mono', monospace;
+  --display:'VT323', monospace;
+  --title:'Orbitron', sans-serif;
+}
+
+/* SCANLINE OVERLAY */
+body{
+  background:#020d04;
+  color:var(--text);
+  font-family:var(--mono);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);
+  pointer-events:none;
+  z-index:9999;
+}
+
+/* PHOSPHOR FLICKER */
+@keyframes flicker{0%,100%{opacity:1;}92%{opacity:1;}93%{opacity:0.97;}94%{opacity:1;}97%{opacity:0.98;}}
+@keyframes scanline{0%{top:-10%;}100%{top:110%;}}
+@keyframes blink{0%,49%{opacity:1;}50%,100%{opacity:0;}}
+@keyframes boot{from{opacity:0;transform:scaleY(0);}to{opacity:1;transform:scaleY(1);}}
+@keyframes typeIn{from{width:0;}to{width:100%;}}
+@keyframes glow-pulse{0%,100%{text-shadow:0 0 8px var(--green);}50%{text-shadow:0 0 20px var(--green),0 0 40px var(--green);}}
+@keyframes slide-in{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.scanline-sweep{
+  position:fixed;top:-10%;left:0;width:100%;height:120px;
+  background:linear-gradient(transparent,rgba(0,255,65,0.04),transparent);
+  animation:scanline 6s linear infinite;
+  pointer-events:none;z-index:9998;
+}
+
+/* TOPBAR */
+.topbar{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:0 1.5rem;
+  display:flex;align-items:center;height:52px;gap:1rem;
+  animation:flicker 8s infinite;
+}
+.logo{
+  font-family:var(--title);font-size:16px;font-weight:900;
+  color:var(--green);letter-spacing:0.1em;
+  text-shadow:0 0 12px var(--green);
+  flex:1;display:flex;align-items:center;gap:10px;
+}
+.logo-bracket{color:var(--text-dim);font-size:14px;}
+.cursor-blink{display:inline-block;width:8px;height:16px;background:var(--green);animation:blink 1s infinite;vertical-align:middle;margin-left:4px;}
+.nav-tabs{display:flex;gap:4px;}
+.nav-tab{
+  font-family:var(--mono);font-size:12px;padding:5px 14px;
+  border:1px solid var(--border);background:transparent;color:var(--text-dim);
+  cursor:pointer;letter-spacing:0.05em;transition:all 0.15s;
+}
+.nav-tab:hover{border-color:var(--green-dim);color:var(--green-dim);}
+.nav-tab.active{border-color:var(--green);color:var(--green);background:var(--green-dark);box-shadow:0 0 8px var(--green-glow);}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 1.2s infinite;box-shadow:0 0 6px var(--green);}
+.status-label{font-size:11px;color:var(--green-dim);letter-spacing:0.08em;}
+
+/* PAGE */
+.page{display:none;}
+.page.active{display:block;}
+.container{max-width:820px;margin:0 auto;padding:2rem 1.5rem;}
+
+/* TERMINAL CARD */
+.t-card{
+  background:var(--surface);border:1px solid var(--border);
+  padding:1.5rem;margin-bottom:1rem;
+  animation:slide-in 0.3s ease;
+}
+.t-card-header{
+  background:var(--bg);border:1px solid var(--border);
+  padding:6px 14px;margin:-1.5rem -1.5rem 1.25rem;
+  display:flex;align-items:center;gap:8px;
+}
+.t-card-header span{font-size:11px;color:var(--text-dim);letter-spacing:0.1em;}
+.t-dot{width:8px;height:8px;border-radius:50%;background:var(--border-bright);}
+
+/* TYPOGRAPHY */
+.t-h1{font-family:var(--title);font-size:18px;font-weight:700;color:var(--green);letter-spacing:0.08em;margin-bottom:0.5rem;text-shadow:0 0 10px var(--green-glow);}
+.t-h2{font-family:var(--display);font-size:24px;color:var(--green);letter-spacing:0.05em;margin-bottom:0.75rem;}
+.t-h3{font-size:13px;color:var(--green-dim);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.75rem;}
+.t-p{font-size:13px;color:var(--text-dim);line-height:1.7;margin-bottom:0.75rem;}
+.t-label{font-size:11px;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;}
+.prompt{color:var(--green);font-size:13px;margin-right:6px;}
+
+/* INPUTS */
+.t-input{
+  width:100%;padding:8px 12px;font-family:var(--mono);font-size:13px;
+  background:var(--bg);border:1px solid var(--border);color:var(--green);
+  outline:none;letter-spacing:0.03em;
+}
+.t-input:focus{border-color:var(--green);box-shadow:0 0 0 1px var(--green-glow);}
+.t-input::placeholder{color:var(--text-dim);}
+textarea.t-input{resize:vertical;min-height:80px;}
+input[type=file]{font-family:var(--mono);font-size:12px;color:var(--text-dim);}
+input[type=file]::file-selector-button{
+  font-family:var(--mono);font-size:12px;padding:4px 12px;
+  background:var(--bg);border:1px solid var(--border);color:var(--green-dim);cursor:pointer;margin-right:10px;
+}
+input[type=file]::file-selector-button:hover{border-color:var(--green);color:var(--green);}
+
+/* BUTTONS */
+.t-btn{
+  font-family:var(--mono);font-size:12px;padding:8px 18px;letter-spacing:0.08em;
+  border:1px solid var(--border);background:transparent;color:var(--text-dim);
+  cursor:pointer;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px;
+}
+.t-btn:hover{border-color:var(--green-dim);color:var(--green-dim);background:var(--green-dark);}
+.t-btn:active{transform:scale(0.98);}
+.t-btn:disabled{opacity:0.3;cursor:not-allowed;}
+.t-btn-primary{border-color:var(--green);color:var(--green);background:var(--green-dark);box-shadow:0 0 6px var(--green-glow);}
+.t-btn-primary:hover{background:#005518;box-shadow:0 0 12px var(--green-glow);}
+.t-btn-amber{border-color:var(--amber);color:var(--amber);background:rgba(255,176,0,0.06);}
+.t-btn-amber:hover{background:rgba(255,176,0,0.12);}
+.t-btn-danger{border-color:var(--red);color:var(--red);background:rgba(255,51,51,0.06);}
+.t-btn-group{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:1rem;}
+
+/* BADGE */
+.t-badge{font-family:var(--mono);font-size:10px;padding:2px 8px;letter-spacing:0.08em;border:1px solid;}
+.badge-wait{border-color:#3a7a42;color:#3a7a42;}
+.badge-active{border-color:var(--green);color:var(--green);box-shadow:0 0 4px var(--green-glow);}
+.badge-done{border-color:var(--text-dim);color:var(--text-dim);}
+
+/* PERSON ROW */
+.person-row{
+  display:flex;align-items:center;gap:12px;padding:10px 0;
+  border-bottom:1px solid var(--border);
+}
+.person-row:last-child{border-bottom:none;}
+.t-avatar{
+  width:38px;height:38px;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--title);font-size:12px;color:var(--green);
+  background:var(--bg);flex-shrink:0;overflow:hidden;
+}
+.t-avatar img{width:100%;height:100%;object-fit:cover;}
+.person-name{font-size:14px;color:var(--text);letter-spacing:0.03em;}
+.person-id{font-size:11px;color:var(--text-dim);letter-spacing:0.06em;}
+.person-tags{font-size:11px;color:var(--green-dim);margin-top:2px;}
+
+/* PROGRESS */
+.t-progress{height:2px;background:var(--border);margin:0.75rem 0;}
+.t-progress-fill{height:100%;background:var(--green);box-shadow:0 0 6px var(--green);transition:width 0.5s;}
+
+/* VIEWER SCREENS */
+.v-screen{min-height:calc(100vh - 52px);display:flex;align-items:center;justify-content:center;padding:2rem;}
+.v-screen.hidden{display:none;}
+
+/* BOOT SCREEN */
+.boot-container{text-align:center;max-width:560px;width:100%;}
+.ascii-logo{
+  font-family:var(--display);font-size:52px;color:var(--green);
+  letter-spacing:0.1em;text-shadow:0 0 20px var(--green),0 0 40px rgba(0,255,65,0.4);
+  animation:glow-pulse 3s ease-in-out infinite;
+  line-height:1;margin-bottom:0.25rem;
+}
+.ascii-sub{font-family:var(--title);font-size:11px;letter-spacing:0.35em;color:var(--text-dim);margin-bottom:2rem;}
+.boot-lines{text-align:left;background:var(--bg);border:1px solid var(--border);padding:1rem 1.25rem;margin:1.5rem 0;}
+.boot-line{font-size:12px;color:var(--text-dim);padding:2px 0;letter-spacing:0.04em;}
+.boot-line.ok{color:var(--green-dim);}
+.boot-line.ok::before{content:'[OK]  ';color:var(--green);}
+.boot-line.wait::before{content:'[...] ';color:var(--amber);}
+.boot-line.err::before{content:'[ERR] ';color:var(--red);}
+.boot-line.sys::before{content:'> ';color:var(--green);}
+.instructions-list{list-style:none;text-align:left;margin:1.25rem 0;}
+.instructions-list li{
+  display:flex;gap:10px;padding:8px 0;
+  border-bottom:1px solid var(--border);font-size:13px;color:var(--text-dim);
+}
+.instructions-list li:last-child{border-bottom:none;}
+.step-num{
+  background:var(--green-dark);border:1px solid var(--green);
+  color:var(--green);width:20px;height:20px;font-size:11px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+
+/* WAITING */
+.wait-ring{
+  width:64px;height:64px;border:2px solid var(--border);
+  border-top-color:var(--green);border-radius:50%;
+  animation:spin 1.2s linear infinite;margin:0 auto 1.5rem;
+}
+
+/* PHOTO DISPLAY */
+.photo-stage{max-width:400px;width:100%;}
+.photo-frame{
+  width:100%;aspect-ratio:1;border:1px solid var(--border);
+  background:var(--bg);display:flex;align-items:center;justify-content:center;
+  overflow:hidden;margin-bottom:1rem;position:relative;
+}
+.photo-frame img{width:100%;height:100%;object-fit:cover;}
+.photo-frame::after{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.06) 3px,rgba(0,0,0,0.06) 4px);
+  pointer-events:none;
+}
+.photo-name{font-family:var(--display);font-size:32px;color:var(--green);text-align:center;letter-spacing:0.06em;text-shadow:0 0 10px var(--green-glow);}
+.photo-id{font-size:11px;color:var(--text-dim);text-align:center;letter-spacing:0.12em;margin-bottom:1.5rem;}
+
+/* TAGS */
+.tag-input-row{display:flex;gap:8px;margin-bottom:10px;}
+.tag-input-row .t-input{flex:1;}
+.tags-wrap{display:flex;flex-wrap:wrap;gap:6px;min-height:32px;}
+.t-tag{
+  background:var(--green-dark);border:1px solid var(--green);
+  color:var(--green);font-size:12px;padding:3px 10px;
+  display:flex;align-items:center;gap:6px;
+}
+.t-tag button{background:none;border:none;color:var(--green-dim);cursor:pointer;font-size:14px;padding:0;line-height:1;}
+.t-tag button:hover{color:var(--red);}
+.tag-count{font-size:11px;color:var(--text-dim);margin-top:8px;letter-spacing:0.05em;}
+
+/* GENERATED CARD */
+.gen-card{
+  border:1px solid var(--green);background:var(--bg);
+  padding:2rem;text-align:center;position:relative;overflow:hidden;
+}
+.gen-card::before{
+  content:'TERMINAL 2K26';
+  position:absolute;top:10px;right:14px;
+  font-family:var(--title);font-size:8px;letter-spacing:0.2em;color:var(--text-dim);
+}
+.gen-avatar{
+  width:100px;height:100px;border:1px solid var(--green);
+  margin:0 auto 1rem;overflow:hidden;background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--title);font-size:28px;color:var(--green);
+}
+.gen-avatar img{width:100%;height:100%;object-fit:cover;}
+.gen-name{font-family:var(--display);font-size:32px;color:var(--green);letter-spacing:0.06em;text-shadow:0 0 8px var(--green-glow);}
+.gen-id{font-size:11px;color:var(--text-dim);letter-spacing:0.12em;margin-bottom:1.25rem;}
+.gen-tags{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;}
+.gen-tag{
+  background:transparent;border:1px solid var(--green-dim);
+  color:var(--green-dim);font-size:12px;padding:4px 12px;font-family:var(--mono);
+}
+.corner{position:absolute;width:12px;height:12px;border-color:var(--green);}
+.corner-tl{top:8px;left:8px;border-top:1px solid;border-left:1px solid;}
+.corner-tr{top:8px;right:8px;border-top:1px solid;border-right:1px solid;}
+.corner-bl{bottom:8px;left:8px;border-bottom:1px solid;border-left:1px solid;}
+.corner-br{bottom:8px;right:8px;border-bottom:1px solid;border-right:1px solid;}
+
+/* STATUS MSG */
+.t-msg{padding:8px 12px;font-size:12px;margin-top:8px;border:1px solid;letter-spacing:0.04em;}
+.t-msg-ok{border-color:var(--green);color:var(--green);background:var(--green-dark);}
+.t-msg-warn{border-color:var(--amber);color:var(--amber);background:rgba(255,176,0,0.06);}
+.t-msg-err{border-color:var(--red);color:var(--red);background:rgba(255,51,51,0.06);}
+
+/* GRID */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+@media(max-width:500px){.grid2{grid-template-columns:1fr;}}
+.scroll-box{max-height:280px;overflow-y:auto;}
+
+/* SECTION LABEL */
+.t-section{font-size:10px;color:var(--text-dim);letter-spacing:0.15em;text-transform:uppercase;margin:1.5rem 0 0.5rem;border-left:2px solid var(--green);padding-left:8px;}
+
+/* GITHUB CONFIG */
+.github-url-row{display:flex;gap:8px;align-items:center;}
+
+/* DONE SCREEN */
+.done-ascii{font-family:var(--display);font-size:64px;color:var(--green);text-shadow:0 0 20px var(--green);animation:glow-pulse 2s infinite;}
+
+code{font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:1px 6px;color:var(--green-dim);}
+</style>
+</head>
+<body>
+
+<div class="scanline-sweep"></div>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <div class="logo">
+    <span class="logo-bracket">[</span>
+    TERMINAL 2K26
+    <span class="logo-bracket">]</span>
+    <span class="cursor-blink"></span>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchPage('admin')" id="tab-admin">ADMIN</button>
+    <button class="nav-tab" onclick="switchPage('viewer')" id="tab-viewer">VIEWER</button>
+  </div>
+  <div id="live-indicator" style="display:none;display:flex;align-items:center;gap:6px;">
+    <span class="status-dot"></span>
+    <span class="status-label">LIVE</span>
+  </div>
+</nav>
+
+<!-- ══════════ ADMIN PAGE ══════════ -->
+<div id="page-admin" class="page active">
+  <div class="container">
+
+    <!-- SETUP -->
+    <div id="admin-setup">
+      <div style="margin-bottom:1.5rem;padding-top:0.5rem;">
+        <div class="t-h1">ADMIN CONSOLE</div>
+        <div class="t-p"><span class="prompt">$</span> Configure session parameters and initiate sequence.</div>
+      </div>
+
+      <!-- GitHub CSV Source -->
+      <div class="t-card">
+        <div class="t-card-header"><div class="t-dot"></div><span>DATA SOURCE / GITHUB CSV</span></div>
+        <div class="t-label"><span class="prompt">$</span> raw github csv url</div>
+        <div class="github-url-row">
+          <input type="text" class="t-input" id="github-url" placeholder="https://raw.githubusercontent.com/user/repo/main/participants.csv" style="flex:1;">
+          <button class="t-btn t-btn-primary" onclick="fetchGithubCSV()">LOAD</button>
+        </div>
+        <div class="t-p" style="margin-top:0.75rem;">CSV columns required: <code>id</code> <code>name</code> <code>photo_url</code> <code>email</code></div>
+        <div id="github-msg"></div>
+        <div style="margin-top:0.75rem;display:flex;align-items:center;gap:10px;">
+          <span style="font-size:11px;color:var(--text-dim);">— or —</span>
+          <button class="t-btn" onclick="loadSample()" style="font-size:11px;">LOAD SAMPLE DATA</button>
+          <label class="t-btn" style="cursor:pointer;font-size:11px;">
+            UPLOAD CSV <input type="file" accept=".csv" onchange="loadFileCSV(event)" style="display:none;">
+          </label>
+        </div>
+        <div id="csv-preview" style="display:none;margin-top:1rem;">
+          <div class="t-section">LOADED PARTICIPANTS</div>
+          <div class="scroll-box" id="participants-list"></div>
+        </div>
+      </div>
+
+      <!-- Session Config -->
+      <div class="t-card">
+        <div class="t-card-header"><div class="t-dot"></div><span>SESSION CONFIG</span></div>
+        <div class="t-label"><span class="prompt">$</span> session title</div>
+        <input type="text" class="t-input" id="session-title" value="TERMINAL 2K26" style="margin-bottom:12px;">
+        <div class="t-label"><span class="prompt">$</span> viewer instructions</div>
+        <textarea class="t-input" id="session-instructions">WELCOME TO TERMINAL 2K26.
+
+You will see participant photos displayed one by one. For each participant, add descriptive tags — words that capture their personality, skills, or standout traits.
+
+Submit your tags when done. A personalized tag card will be generated and sent to each participant.</textarea>
+      </div>
+
+      <!-- Email Config -->
+      <div class="t-card">
+        <div class="t-card-header"><div class="t-dot"></div><span>EMAIL DISPATCH CONFIG</span></div>
+        <div class="grid2">
+          <div>
+            <div class="t-label"><span class="prompt">$</span> from name</div>
+            <input type="text" class="t-input" id="from-name" value="Terminal 2k26">
+          </div>
+          <div>
+            <div class="t-label"><span class="prompt">$</span> email subject</div>
+            <input type="text" class="t-input" id="email-subject" value="Your Terminal 2k26 tag card">
+          </div>
+        </div>
+      </div>
+
+      <div class="t-btn-group">
+        <button class="t-btn t-btn-primary" onclick="startSession()">▶ INITIATE SESSION</button>
+        <span id="setup-msg" style="font-size:12px;color:var(--text-dim);"></span>
+      </div>
+    </div>
+
+    <!-- CONTROL PANEL -->
+    <div id="admin-control" style="display:none;">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-top:0.5rem;">
+        <div class="t-h1" id="ctrl-title">TERMINAL 2K26</div>
+        <button class="t-btn t-btn-danger" onclick="endSession()" style="font-size:11px;">■ END SESSION</button>
+      </div>
+
+      <!-- Progress -->
+      <div class="t-card" style="padding:1rem 1.25rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;color:var(--text-dim);" id="progress-label">0 / 0 PROCESSED</span>
+          <span style="font-size:14px;color:var(--green);font-family:var(--display);" id="progress-pct">0%</span>
+        </div>
+        <div class="t-progress"><div class="t-progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+
+      <!-- Current person -->
+      <div class="t-card" id="current-card" style="display:none;">
+        <div class="t-card-header"><div class="t-dot"></div><span>CURRENT TARGET</span></div>
+        <div id="current-person-row"></div>
+        <div id="admin-tag-preview" style="margin-top:0.5rem;"></div>
+        <div class="t-btn-group">
+          <button class="t-btn t-btn-primary" id="btn-release" onclick="releasePerson()">▶ RELEASE TO VIEWERS</button>
+          <button class="t-btn t-btn-amber" id="btn-finish" onclick="finishPerson()" style="display:none;">■ COLLECT &amp; GENERATE</button>
+          <span id="ctrl-msg" style="font-size:11px;color:var(--text-dim);"></span>
+        </div>
+      </div>
+
+      <!-- Generated card -->
+      <div id="generated-area" style="display:none;">
+        <div class="t-section">GENERATED CARD</div>
+        <div id="generated-card-html"></div>
+        <div class="t-btn-group" style="margin-top:1rem;">
+          <button class="t-btn t-btn-primary" onclick="sendCard()">▶ SEND EMAIL</button>
+          <button class="t-btn" onclick="downloadCard()">↓ DOWNLOAD CARD</button>
+          <button class="t-btn t-btn-amber" onclick="nextPerson()">NEXT ▶</button>
+        </div>
+        <div id="send-status"></div>
+      </div>
+
+      <!-- All participants -->
+      <div class="t-card" style="margin-top:1rem;">
+        <div class="t-card-header"><div class="t-dot"></div><span>ALL PARTICIPANTS</span></div>
+        <div class="scroll-box" id="all-participants"></div>
+      </div>
+
+      <div class="t-card" style="padding:0.75rem 1.25rem;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:12px;color:var(--text-dim);">EXPORT RESULTS WITH TAGS</span>
+        <button class="t-btn" onclick="downloadCSV()" style="font-size:11px;">↓ DOWNLOAD CSV</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ VIEWER PAGE ══════════ -->
+<div id="page-viewer" class="page">
+
+  <!-- BOOT / INSTRUCTIONS -->
+  <div class="v-screen" id="v-boot">
+    <div class="boot-container">
+      <div class="ascii-logo">TERMINAL</div>
+      <div class="ascii-logo" style="font-size:42px;margin-top:-12px;">2K26</div>
+      <div class="ascii-sub">PARTICIPANT TAG SYSTEM v1.0</div>
+
+      <div class="boot-lines" id="boot-lines">
+        <div class="boot-line ok">system initialized</div>
+        <div class="boot-line ok">camera module ready</div>
+        <div class="boot-line ok">tag engine loaded</div>
+        <div class="boot-line wait" id="session-boot-line">awaiting session start...</div>
+      </div>
+
+      <div id="v-session-title" style="font-family:var(--title);font-size:13px;color:var(--green);letter-spacing:0.2em;margin-bottom:1rem;"></div>
+
+      <ul class="instructions-list" id="v-instructions-list">
+        <li><span class="step-num">01</span><span>Wait for admin to release each participant</span></li>
+        <li><span class="step-num">02</span><span>Photo appears — observe carefully</span></li>
+        <li><span class="step-num">03</span><span>Enter descriptive tags for this person</span></li>
+        <li><span class="step-num">04</span><span>Submit when done — card gets generated</span></li>
+        <li><span class="step-num">05</span><span>Card is emailed to the participant</span></li>
+      </ul>
+
+      <div style="font-size:12px;color:var(--text-dim);" id="v-wait-note"><span class="prompt">$</span> standby — session not started</div>
+    </div>
+  </div>
+
+  <!-- WAITING BETWEEN PERSONS -->
+  <div class="v-screen hidden" id="v-waiting">
+    <div style="text-align:center;">
+      <div class="wait-ring"></div>
+      <div class="t-h2">STANDBY</div>
+      <div class="t-p"><span class="prompt">$</span> Next participant loading...</div>
+    </div>
+  </div>
+
+  <!-- ACTIVE TAGGING -->
+  <div class="v-screen hidden" id="v-active">
+    <div class="photo-stage">
+      <div class="photo-frame" id="v-photo-frame">
+        <div style="text-align:center;color:var(--text-dim);">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+      </div>
+      <div class="photo-name" id="v-name">—</div>
+      <div class="photo-id" id="v-id">—</div>
+
+      <div class="t-card">
+        <div class="t-card-header"><div class="t-dot"></div><span>TAG INPUT</span></div>
+        <div class="tag-input-row">
+          <input type="text" class="t-input" id="tag-input" placeholder="type tag, press enter..." onkeydown="handleTagKey(event)">
+          <button class="t-btn t-btn-primary" onclick="addTag()">ADD</button>
+        </div>
+        <div class="tags-wrap" id="tags-wrap"></div>
+        <div class="tag-count" id="tag-count"><span class="prompt">$</span> 0 tags queued</div>
+        <div class="t-btn-group">
+          <button class="t-btn t-btn-primary" onclick="submitTags()">▶ SUBMIT TAGS</button>
+        </div>
+        <div id="tag-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD REVEAL -->
+  <div class="v-screen hidden" id="v-card">
+    <div style="max-width:400px;width:100%;padding:1rem;">
+      <div class="t-section" style="margin-top:0;">CARD GENERATED</div>
+      <div id="v-gen-card"></div>
+      <div class="t-btn-group" style="justify-content:center;margin-top:1rem;">
+        <button class="t-btn" onclick="viewerWait()">NEXT PARTICIPANT ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DONE -->
+  <div class="v-screen hidden" id="v-done">
+    <div style="text-align:center;">
+      <div class="done-ascii">DONE</div>
+      <div class="t-h2" style="margin-top:0.5rem;">SESSION COMPLETE</div>
+      <div class="t-p"><span class="prompt">$</span> All participants processed. Thank you.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const S = {
+  sessionStarted: false,
+  sessionTitle: 'TERMINAL 2K26',
+  participants: [],
+  currentIndex: -1,
+  currentPerson: null,
+  currentTags: [],
+  allTags: {},
+  phase: 'setup',
+  submitted: false,
+};
+
+function ini(name){ return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+
+function driveUrl(url){
+  if(!url) return '';
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if(m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400`;
+  return url;
+}
+
+/* ── CSV LOADING ── */
+async function fetchGithubCSV(){
+  const url = document.getElementById('github-url').value.trim();
+  if(!url){ showMsg('github-msg','URL required','err'); return; }
+  showMsg('github-msg','Fetching...','warn');
+  try{
+    const r = await fetch(url);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const txt = await r.text();
+    parseCSV(txt);
+    showMsg('github-msg','Loaded '+S.participants.length+' participants from GitHub','ok');
+  } catch(e){ showMsg('github-msg','Failed: '+e.message,'err'); }
+}
+
+function loadFileCSV(ev){
+  const f = ev.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = e => { parseCSV(e.target.result); showMsg('github-msg','Loaded '+S.participants.length+' participants','ok'); };
+  r.readAsText(f);
+}
+
+function loadSample(){
+  S.participants = [
+    {id:'T001',name:'Arjun Sharma',photo_url:'https://i.pravatar.cc/400?img=11',email:'arjun@example.com'},
+    {id:'T002',name:'Priya Nair',photo_url:'https://i.pravatar.cc/400?img=5',email:'priya@example.com'},
+    {id:'T003',name:'Rahul Verma',photo_url:'https://i.pravatar.cc/400?img=7',email:'rahul@example.com'},
+  ];
+  renderAdminList(); showCSVPreview();
+  showMsg('github-msg','3 sample participants loaded','ok');
+}
+
+function parseCSV(txt){
+  const lines = txt.split('\n').filter(l=>l.trim());
+  const hdrs = lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/"/g,''));
+  const col = k => hdrs.findIndex(h=>h===k);
+  const idc=col('id'), nc=col('name'), pc=hdrs.findIndex(h=>['photo_url','photo','drive_link','image','photo url'].includes(h)), ec=col('email');
+  S.participants = [];
+  for(let i=1;i<lines.length;i++){
+    const cs = parseCSVLine(lines[i]);
+    if(cs.length<2) continue;
+    S.participants.push({
+      id: idc>=0?cs[idc]:String(i),
+      name: nc>=0?cs[nc]:'',
+      photo_url: pc>=0?driveUrl(cs[pc]):'',
+      email: ec>=0?cs[ec]:''
+    });
+  }
+  renderAdminList(); showCSVPreview();
+}
+
+function parseCSVLine(line){
+  const res=[]; let cur='', inQ=false;
+  for(const ch of line){
+    if(ch==='"'){inQ=!inQ;}
+    else if(ch===','&&!inQ){res.push(cur.trim());cur='';}
+    else cur+=ch;
+  }
+  res.push(cur.trim()); return res;
+}
+
+function showCSVPreview(){ document.getElementById('csv-preview').style.display='block'; }
+
+function renderAdminList(){
+  document.getElementById('participants-list').innerHTML = S.participants.map(p=>`
+    <div class="person-row">
+      <div class="t-avatar">${p.photo_url?`<img src="${p.photo_url}" onerror="this.parentNode.textContent='${ini(p.name)}'">`:ini(p.name)}</div>
+      <div style="flex:1;">
+        <div class="person-name">${p.name}</div>
+        <div class="person-id">ID: ${p.id} · ${p.email||'no email'}</div>
+      </div>
+      <span class="t-badge badge-wait">PENDING</span>
+    </div>`).join('');
+}
+
+/* ── SESSION ── */
+function startSession(){
+  if(!S.participants.length){ document.getElementById('setup-msg').textContent='Load participants first.'; return; }
+  S.sessionTitle = document.getElementById('session-title').value;
+  S.sessionStarted = true;
+  S.currentIndex = -1;
+  S.allTags = {};
+  S.phase = 'waiting';
+  document.getElementById('admin-setup').style.display='none';
+  document.getElementById('admin-control').style.display='block';
+  document.getElementById('ctrl-title').textContent = S.sessionTitle;
+  document.getElementById('live-indicator').style.display='flex';
+  updateProgress(); renderAllAdmin();
+  // Viewer boot
+  document.getElementById('v-session-title').textContent = S.sessionTitle;
+  document.getElementById('session-boot-line').className='boot-line ok';
+  document.getElementById('session-boot-line').textContent='session active — standby';
+  document.getElementById('v-wait-note').innerHTML='<span class="prompt">$</span> session live — waiting for first participant...';
+  setViewPhase('v-waiting');
+  loadNext();
+}
+
+function endSession(){
+  if(!confirm('Terminate session?')) return;
+  S.sessionStarted=false; S.phase='setup';
+  document.getElementById('admin-setup').style.display='block';
+  document.getElementById('admin-control').style.display='none';
+  document.getElementById('live-indicator').style.display='none';
+  setViewPhase('v-boot');
+}
+
+function loadNext(){
+  S.currentIndex++;
+  if(S.currentIndex>=S.participants.length){
+    S.phase='done'; setViewPhase('v-done');
+    document.getElementById('current-card').style.display='none';
+    document.getElementById('generated-area').style.display='none';
+    return;
+  }
+  S.currentPerson = S.participants[S.currentIndex];
+  S.submitted=false; S.currentTags=[];
+  S.phase='waiting';
+  document.getElementById('current-card').style.display='block';
+  document.getElementById('generated-area').style.display='none';
+  document.getElementById('btn-release').style.display='inline-flex';
+  document.getElementById('btn-finish').style.display='none';
+  document.getElementById('ctrl-msg').textContent='';
+  renderCurrentAdmin(); renderAllAdmin(); updateProgress();
+  setViewPhase('v-waiting');
+}
+
+function renderCurrentAdmin(){
+  const p=S.currentPerson;
+  document.getElementById('current-person-row').innerHTML=`
+    <div class="person-row" style="border:none;padding-top:0;">
+      <div class="t-avatar">${p.photo_url?`<img src="${p.photo_url}" onerror="this.parentNode.textContent='${ini(p.name)}'">`:ini(p.name)}</div>
+      <div style="flex:1;">
+        <div class="person-name">${p.name}</div>
+        <div class="person-id">ID: ${p.id} · ${p.email||'no email'}</div>
+      </div>
+      <span class="t-badge badge-active">ACTIVE</span>
+    </div>`;
+  document.getElementById('admin-tag-preview').innerHTML='';
+}
+
+function releasePerson(){
+  S.phase='active';
+  setViewPhase('v-active');
+  document.getElementById('btn-release').style.display='none';
+  document.getElementById('btn-finish').style.display='inline-flex';
+  document.getElementById('ctrl-msg').textContent='viewers tagging now...';
+}
+
+function finishPerson(){
+  if(!S.currentTags.length){ document.getElementById('ctrl-msg').textContent='no tags yet — viewers may still be typing'; }
+  generateCard();
+}
+
+function generateCard(){
+  const p=S.currentPerson;
+  const tags=S.currentTags.length?S.currentTags:['[none]'];
+  S.allTags[p.id]=tags;
+  const html=buildCard(p,tags);
+  document.getElementById('generated-card-html').innerHTML=html;
+  document.getElementById('generated-area').style.display='block';
+  document.getElementById('current-card').style.display='none';
+  document.getElementById('v-gen-card').innerHTML=buildCard(p,tags);
+  setViewPhase('v-card');
+  renderAllAdmin();
+}
+
+function buildCard(p,tags){
+  const av=p.photo_url?`<img src="${p.photo_url}" onerror="this.parentNode.textContent='${ini(p.name)}'">`:ini(p.name);
+  return `<div class="gen-card">
+    <div class="corner corner-tl"></div><div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div><div class="corner corner-br"></div>
+    <div class="gen-avatar">${av}</div>
+    <div class="gen-name">${p.name}</div>
+    <div class="gen-id">ID: ${p.id}</div>
+    <div class="gen-tags">${tags.map(t=>`<span class="gen-tag">${t}</span>`).join('')}</div>
+  </div>`;
+}
+
+async function sendCard(){
+  const p=S.currentPerson, tags=S.allTags[p.id]||[];
+  const st=document.getElementById('send-status');
+  st.innerHTML='<div class="t-msg t-msg-warn">▶ Drafting email via AI...</div>';
+  if(!p.email){ st.innerHTML='<div class="t-msg t-msg-err">No email on file. Skipped.</div>'; return; }
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:400,
+        messages:[{role:'user',content:`Write a short warm email body (no subject) to ${p.name} telling them their personalized tag card from "${S.sessionTitle}" is ready. Tags they received: ${tags.join(', ')}. Sign from ${document.getElementById('from-name').value}. Max 100 words.`}]
+      })
+    });
+    const d=await res.json();
+    const body=d.content?.[0]?.text||'Your card is ready!';
+    st.innerHTML=`<div class="t-msg t-msg-ok">EMAIL DRAFTED FOR ${p.email}:<br><span style="color:var(--text-dim);font-size:11px;">${body.slice(0,180)}...</span><br><span style="color:var(--text-dim);font-size:10px;">Integrate SendGrid/Mailgun to deliver.</span></div>`;
+  } catch(e){ st.innerHTML='<div class="t-msg t-msg-err">API error: '+e.message+'</div>'; }
+}
+
+function downloadCard(){
+  const p=S.currentPerson, tags=S.allTags[p.id]||[];
+  const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;">`:ini(p.name);
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${p.name} — Terminal 2k26</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Orbitron:wght@700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#020d04;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Share Tech Mono',monospace;}
+.card{border:1px solid #00ff41;background:#020d04;padding:2rem;text-align:center;position:relative;min-width:300px;}
+.corner{position:absolute;width:12px;height:12px;border-color:#00ff41;}
+.corner-tl{top:8px;left:8px;border-top:1px solid;border-left:1px solid;}
+.corner-tr{top:8px;right:8px;border-top:1px solid;border-right:1px solid;}
+.corner-bl{bottom:8px;left:8px;border-bottom:1px solid;border-left:1px solid;}
+.corner-br{bottom:8px;right:8px;border-bottom:1px solid;border-right:1px solid;}
+.brand{position:absolute;top:10px;right:14px;font-size:8px;letter-spacing:.2em;color:#3a7a42;font-family:'Orbitron',sans-serif;}
+.av{width:100px;height:100px;border:1px solid #00ff41;margin:0 auto 1rem;overflow:hidden;background:#040f06;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:28px;color:#00ff41;}
+.name{font-family:'VT323',monospace;font-size:36px;color:#00ff41;text-shadow:0 0 10px rgba(0,255,65,.4);letter-spacing:.06em;}
+.id{font-size:11px;color:#3a7a42;letter-spacing:.12em;margin-bottom:1.25rem;}
+.tags{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;}
+.tag{border:1px solid #0a3d12;color:#3a7a42;font-size:12px;padding:4px 12px;}
+</style></head><body>
+<div class="card"><div class="corner corner-tl"></div><div class="corner corner-tr"></div><div class="corner corner-bl"></div><div class="corner corner-br"></div>
+<div class="brand">TERMINAL 2K26</div>
+<div class="av">${av}</div>
+<div class="name">${p.name}</div>
+<div class="id">ID: ${p.id}</div>
+<div class="tags">${tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+</div></body></html>`;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
+  a.download=`terminal2k26_${p.id}.html`; a.click();
+}
+
+function nextPerson(){ document.getElementById('send-status').innerHTML=''; loadNext(); }
+
+function updateProgress(){
+  const done=S.currentIndex, total=S.participants.length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('progress-label').textContent=done+' / '+total+' PROCESSED';
+  document.getElementById('progress-pct').textContent=pct+'%';
+  document.getElementById('progress-fill').style.width=pct+'%';
+}
+
+function renderAllAdmin(){
+  document.getElementById('all-participants').innerHTML=S.participants.map((p,i)=>{
+    let cls='badge-wait',lbl='PENDING';
+    if(i<S.currentIndex){cls='badge-done';lbl='DONE';}
+    else if(i===S.currentIndex){cls='badge-active';lbl='ACTIVE';}
+    const tags=S.allTags[p.id];
+    return `<div class="person-row">
+      <div class="t-avatar">${p.photo_url?`<img src="${p.photo_url}" onerror="this.parentNode.textContent='${ini(p.name)}'">`:ini(p.name)}</div>
+      <div style="flex:1;">
+        <div class="person-name">${p.name}</div>
+        <div class="person-id">ID: ${p.id}</div>
+        ${tags?`<div class="person-tags">${tags.join(' · ')}</div>`:''}
+      </div>
+      <span class="t-badge ${cls}">${lbl}</span>
+    </div>`;
+  }).join('');
+}
+
+function downloadCSV(){
+  const rows=[['id','name','photo_url','email','tags']];
+  for(const p of S.participants){
+    const tags=(S.allTags[p.id]||[]).join('; ');
+    rows.push([p.id,p.name,p.photo_url,p.email,tags]);
+  }
+  const csv=rows.map(r=>r.map(c=>`"${(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='terminal2k26_results.csv'; a.click();
+}
+
+/* ── VIEWER ── */
+function setViewPhase(id){
+  ['v-boot','v-waiting','v-active','v-card','v-done'].forEach(x=>{
+    document.getElementById(x).classList.toggle('hidden', x!==id);
+    document.getElementById(x).style.display=x===id?'flex':'none';
+  });
+  if(id==='v-active') renderViewerActive();
+}
+
+function renderViewerActive(){
+  const p=S.currentPerson; if(!p) return;
+  document.getElementById('v-name').textContent=p.name;
+  document.getElementById('v-id').textContent='ID: '+p.id;
+  document.getElementById('tags-wrap').innerHTML='';
+  document.getElementById('tag-input').value='';
+  document.getElementById('tag-count').innerHTML='<span class="prompt">$</span> 0 tags queued';
+  document.getElementById('tag-msg').innerHTML='';
+  document.getElementById('tag-input').disabled=false;
+  S.currentTags=[]; S.submitted=false;
+  const fr=document.getElementById('v-photo-frame');
+  if(p.photo_url){
+    fr.innerHTML=`<img src="${p.photo_url}" alt="${p.name}" onerror="this.parentNode.innerHTML='<div style=text-align:center;color:#3a7a42;font-family:Orbitron,sans-serif;font-size:36px>${ini(p.name)}</div>'">`;
+  } else {
+    fr.innerHTML=`<div style="font-family:var(--title);font-size:48px;color:var(--green);">${ini(p.name)}</div>`;
+  }
+}
+
+function handleTagKey(e){ if(e.key==='Enter'){e.preventDefault();addTag();} }
+
+function addTag(){
+  if(S.submitted) return;
+  const inp=document.getElementById('tag-input');
+  const v=inp.value.trim();
+  if(!v||S.currentTags.includes(v)){inp.value='';return;}
+  S.currentTags.push(v); inp.value='';
+  renderTags();
+  document.getElementById('admin-tag-preview').innerHTML=
+    `<div style="font-size:11px;color:var(--text-dim);">viewer tags: <span style="color:var(--green);">${S.currentTags.join(' · ')}</span></div>`;
+}
+
+function removeTag(t){
+  S.currentTags=S.currentTags.filter(x=>x!==t);
+  renderTags();
+}
+
+function renderTags(){
+  document.getElementById('tags-wrap').innerHTML=S.currentTags.map(t=>
+    `<span class="t-tag">${t}<button onclick="removeTag('${t.replace(/'/g,"\\'")}')">×</button></span>`
+  ).join('');
+  const n=S.currentTags.length;
+  document.getElementById('tag-count').innerHTML=`<span class="prompt">$</span> ${n} tag${n!==1?'s':''} queued`;
+}
+
+function submitTags(){
+  if(!S.currentTags.length){
+    document.getElementById('tag-msg').innerHTML='<div class="t-msg t-msg-err">add at least one tag before submitting</div>';
+    return;
+  }
+  S.submitted=true;
+  document.getElementById('tag-msg').innerHTML='<div class="t-msg t-msg-ok">▶ tags submitted — awaiting card generation</div>';
+  document.getElementById('tag-input').disabled=true;
+  document.getElementById('ctrl-msg').textContent='tags received — ready to collect';
+}
+
+function viewerWait(){ setViewPhase('v-waiting'); }
+
+function showMsg(id,msg,type){
+  const map={ok:'t-msg-ok',warn:'t-msg-warn',err:'t-msg-err'};
+  document.getElementById(id).innerHTML=`<div class="t-msg ${map[type]||''}" style="margin-top:8px;">${msg}</div>`;
+}
+
+/* ── PAGE SWITCH ── */
+function switchPage(p){
+  ['admin','viewer'].forEach(x=>{
+    document.getElementById('page-'+x).classList.toggle('active',x===p);
+    document.getElementById('tab-'+x).classList.toggle('active',x===p);
+  });
+  if(p==='viewer'&&S.sessionStarted) setViewPhase('v-'+S.phase);
+  else if(p==='viewer') setViewPhase('v-boot');
+}
+</script>
+</body>
+</html>
